@@ -1,0 +1,7 @@
+이 서버 구현체는 Pufferfish-Purpur 1.18.1의 하드 포크로 야생보다는 건축용에 최적화되어 있으며 재밌는 기능이 추가되어 있다.
+
+- 1.19 및 1.20에 추가된 일부 블록 포팅 (실제로 사용하려면 ViaVersion 및 개조된 매핑 파일 필요)
+- 부시만 공격하는 스켈레톤 (/summon skeleton ~ ~ ~ { BooshiKiller: 1b })
+- 비공격적 호글린 (/summon hoglin ~ ~ ~ { Passive: 1b })
+- OP 권한 레벨 지정 가능
+- 그 외...
