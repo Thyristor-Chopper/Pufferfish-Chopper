@@ -5,3 +5,9 @@
 - 비공격적 호글린 (/summon hoglin ~ ~ ~ { Passive: 1b })
 - OP 권한 레벨 지정 가능
 - 그 외...
+
+빌드 방법:
+./gradlew applyPatches
+./gradlew createReobfPaperclipJar
+
+빌드 시 git config --global core.autocrlf true 실행하는 것을 추천함.
