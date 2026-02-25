@@ -1,0 +1,1282 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=EC=8B=B8=EC=9D=B4=EB=A6=AC=EC=8A=A4=ED=84=B0=20=EC=B4=88?=
+ =?UTF-8?q?=ED=8D=BC?= <gec_thyristor_chopper@[127.0.0.1]>
+Date: Thu, 26 Feb 2026 03:01:51 +0900
+Subject: [PATCH] v-2026-02-25-02_03_54
+
+
+diff --git a/build.gradle.kts b/build.gradle.kts
+index 6cbc9bc360ce9c68783c8c0314ab72532062dfea..7b3e0e1b1d04269891920826df61632c4026fe75 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -28,6 +28,7 @@ dependencies {
+     api("com.google.code.gson:gson:2.8.8")
+     api("net.md-5:bungeecord-chat:1.16-R0.4")
+     api("org.yaml:snakeyaml:1.30")
++    api("org.joml:joml:1.10.5")
+     // Paper start
+     api("com.googlecode.json-simple:json-simple:1.1.1") {
+         isTransitive = false // includes junit
+@@ -40,8 +41,8 @@ dependencies {
+     apiAndDocs("net.kyori:adventure-text-serializer-plain")
+     api("org.apache.logging.log4j:log4j-api:2.17.1")
+     api("org.slf4j:slf4j-api:1.8.0-beta4")
+-    api("net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT") // Purpur
+     api("io.sentry:sentry:5.4.0") // Pufferfish
++    api("net.kyori:adventure-text-minimessage:4.1.0-SNAPSHOT") // Purpur
+ 
+     implementation("org.ow2.asm:asm:9.2")
+     implementation("org.ow2.asm:asm-commons:9.2")
+@@ -83,6 +84,13 @@ val generateApiVersioningFile by tasks.registering {
+     }
+ }
+ 
++// Pufferfish Start
++tasks.withType<JavaCompile> {
++    val compilerArgs = options.compilerArgs
++    compilerArgs.add("--add-modules=jdk.incubator.vector")
++}
++// Pufferfish End
++
+ tasks.jar {
+     from(generateApiVersioningFile.map { it.outputs.files.singleFile }) {
+         into("META-INF/maven/${project.group}/${project.name}")
+@@ -95,6 +103,7 @@ tasks.jar {
+ }
+ 
+ tasks.withType<Javadoc> {
++    (options as StandardJavadocDocletOptions).addStringOption("-add-modules", "jdk.incubator.vector") // Purpur - our javadocs need this for pufferfish's SIMD patch
+     inputs.files(apiAndDocs)
+         .ignoreEmptyDirectories()
+         .withPropertyName(apiAndDocs.name + "-configuration")
+diff --git a/src/main/java/org/bukkit/Material.java b/src/main/java/org/bukkit/Material.java
+index bfcd5b17898ae97340d813bb46506234bc03e229..fafccdfb243e301c73ba507c552d3de1fcf7c053 100644
+--- a/src/main/java/org/bukkit/Material.java
++++ b/src/main/java/org/bukkit/Material.java
+@@ -77,7 +77,10 @@ import org.bukkit.block.data.type.Repeater;
+ import org.bukkit.block.data.type.RespawnAnchor;
+ import org.bukkit.block.data.type.Sapling;
+ import org.bukkit.block.data.type.Scaffolding;
++import org.bukkit.block.data.type.SculkCatalyst;
+ import org.bukkit.block.data.type.SculkSensor;
++import org.bukkit.block.data.type.SculkShrieker;
++import org.bukkit.block.data.type.SculkVein;
+ import org.bukkit.block.data.type.SeaPickle;
+ import org.bukkit.block.data.type.Sign;
+ import org.bukkit.block.data.type.Slab;
+@@ -142,6 +145,7 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+     JUNGLE_PLANKS(26445),
+     ACACIA_PLANKS(31312),
+     DARK_OAK_PLANKS(20869),
++    MANGROVE_PLANKS(7078),
+     CRIMSON_PLANKS(18812),
+     WARPED_PLANKS(16045),
+     /**
+@@ -311,6 +315,74 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+      * BlockData: {@link Orientable}
+      */
+     DARK_OAK_LOG(14831, Orientable.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    MANGROVE_LOG(23890, Orientable.class),
++    /**
++     * BlockData: {@link Waterlogged}
++     */
++    MANGROVE_ROOTS(22124, Waterlogged.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    MUDDY_MANGROVE_ROOTS(23244, Orientable.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    STRIPPED_MANGROVE_LOG(15197, Orientable.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    STRIPPED_MANGROVE_WOOD(4828, Orientable.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    MANGROVE_WOOD(25484, Orientable.class),
++    /**
++     * BlockData: {@link Leaves}
++     */
++    MANGROVE_LEAVES(15310, Leaves.class),
++    /**
++     * BlockData: {@link Slab}
++     */
++    MANGROVE_SLAB(13704, Slab.class),
++    /**
++     * BlockData: {@link Fence}
++     */
++    MANGROVE_FENCE(15021, Fence.class),
++    /**
++     * BlockData: {@link Stairs}
++     */
++    MANGROVE_STAIRS(27641, Stairs.class),
++    /**
++     * BlockData: {@link Switch}
++     */
++    MANGROVE_BUTTON(17207, Switch.class),
++    /**
++     * BlockData: {@link Powerable}
++     */
++    MANGROVE_PRESSURE_PLATE(9748, Powerable.class),
++    /**
++     * BlockData: {@link Door}
++     */
++    MANGROVE_DOOR(18964, Door.class),
++    /**
++     * BlockData: {@link TrapDoor}
++     */
++    MANGROVE_TRAPDOOR(17066, TrapDoor.class),
++    /**
++     * BlockData: {@link Gate}
++     */
++    MANGROVE_FENCE_GATE(28476, Gate.class),
++    /**
++     * BlockData: {@link Sign}
++     */
++    MANGROVE_SIGN(21975, 16, Sign.class),
++    /**
++     * BlockData: {@link WallSign}
++     */
++    MANGROVE_WALL_SIGN(27203, 16, WallSign.class),
+     /**
+      * BlockData: {@link Orientable}
+      */
+@@ -2604,6 +2676,32 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+      * BlockData: {@link PointedDripstone}
+      */
+     POINTED_DRIPSTONE(18755, PointedDripstone.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    OCHRE_FROGLIGHT(25330, Orientable.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    VERDANT_FROGLIGHT(22793, Orientable.class),
++    /**
++     * BlockData: {@link Orientable}
++     */
++    PEARLESCENT_FROGLIGHT(21441, Orientable.class),
++    
++    SCULK(17870),
++    /**
++     * BlockData: {@link SculkVein}
++     */
++    SCULK_VEIN(11615, SculkVein.class),
++    /**
++     * BlockData: {@link SculkCatalyst}
++     */
++    SCULK_CATALYST(12017, SculkCatalyst.class),
++    /**
++     * BlockData: {@link SculkShrieker}
++     */
++    SCULK_SHRIEKER(20985, SculkShrieker.class),
+     /**
+      * BlockData: {@link Levelled}
+      */
+@@ -2986,6 +3084,38 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+     BIG_DRIPLEAF_STEM(13167, Dripleaf.class),
+     POTTED_AZALEA_BUSH(20430),
+     POTTED_FLOWERING_AZALEA_BUSH(10609),
++    CHERRY_PLANKS(8354),
++    BAMBOO_PLANKS(8520),
++    BAMBOO_MOSAIC(10715),
++    CHERRY_LOG(20847, Orientable.class),
++    BAMBOO_BLOCK(20770, Orientable.class),
++    STRIPPED_CHERRY_LOG(18061, Orientable.class),
++    STRIPPED_CHERRY_WOOD(19647, Orientable.class),
++    STRIPPED_BAMBOO_BLOCK(14799, Orientable.class),
++    CHERRY_WOOD(9826, Orientable.class),
++    CHERRY_LEAVES(20856, Leaves.class),
++    CHERRY_SLAB(16673, Slab.class),
++    BAMBOO_SLAB(17798, Slab.class),
++    BAMBOO_MOSAIC_SLAB(22118, Slab.class),
++    CHERRY_FENCE(32047, Fence.class),
++    BAMBOO_FENCE(17207, Fence.class),
++    CHERRY_STAIRS(18380, Stairs.class),
++    BAMBOO_STAIRS(25674, Stairs.class),
++    BAMBOO_MOSAIC_STAIRS(20977, Stairs.class),
++    CHERRY_BUTTON(9058, Switch.class),
++    BAMBOO_BUTTON(21810, Switch.class),
++    CHERRY_PRESSURE_PLATE(8651, Powerable.class),
++    BAMBOO_PRESSURE_PLATE(26740, Powerable.class),
++    CHERRY_DOOR(12684, Door.class),
++    BAMBOO_DOOR(19971, Door.class),
++    CHERRY_TRAPDOOR(6293, TrapDoor.class),
++    BAMBOO_TRAPDOOR(9174, TrapDoor.class),
++    CHERRY_FENCE_GATE(28222, Gate.class),
++    BAMBOO_FENCE_GATE(14290, Gate.class),
++    CHERRY_SIGN(16520, 16, Sign.class),
++    BAMBOO_SIGN(26139, 16, Sign.class),
++    CHERRY_WALL_SIGN(20188, 16, WallSign.class),
++    BAMBOO_WALL_SIGN(18857, 16, WallSign.class),
+     // ----- Legacy Separator -----
+     @Deprecated
+     LEGACY_AIR(0, 0),
+@@ -4179,6 +4309,56 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+     // Paper end
+         switch (this) {
+             //<editor-fold defaultstate="collapsed" desc="isBlock">
++            case BAMBOO_BLOCK:
++            case BAMBOO_BUTTON:
++            case BAMBOO_DOOR:
++            case BAMBOO_FENCE:
++            case BAMBOO_FENCE_GATE:
++            case BAMBOO_MOSAIC:
++            case BAMBOO_MOSAIC_SLAB:
++            case BAMBOO_MOSAIC_STAIRS:
++            case BAMBOO_PLANKS:
++            case BAMBOO_PRESSURE_PLATE:
++            case BAMBOO_SIGN:
++            case BAMBOO_SLAB:
++            case BAMBOO_STAIRS:
++            case BAMBOO_TRAPDOOR:
++            case BAMBOO_WALL_SIGN:
++            case CHERRY_BUTTON:
++            case CHERRY_DOOR:
++            case CHERRY_FENCE:
++            case CHERRY_FENCE_GATE:
++            case CHERRY_LEAVES:
++            case CHERRY_LOG:
++            case CHERRY_PLANKS:
++            case CHERRY_PRESSURE_PLATE:
++            case CHERRY_SIGN:
++            case CHERRY_SLAB:
++            case CHERRY_STAIRS:
++            case CHERRY_TRAPDOOR:
++            case CHERRY_WALL_SIGN:
++            case CHERRY_WOOD:
++            case STRIPPED_BAMBOO_BLOCK:
++            case STRIPPED_CHERRY_LOG:
++            case STRIPPED_CHERRY_WOOD:
++            case MANGROVE_BUTTON:
++            case MANGROVE_DOOR:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_LEAVES:
++            case MANGROVE_LOG:
++            case MANGROVE_PLANKS:
++            case MANGROVE_PRESSURE_PLATE:
++            case MANGROVE_ROOTS:
++            case MANGROVE_SIGN:
++            case MANGROVE_SLAB:
++            case MANGROVE_STAIRS:
++            case MANGROVE_TRAPDOOR:
++            case MANGROVE_WALL_SIGN:
++            case MANGROVE_WOOD:
++            case MUDDY_MANGROVE_ROOTS:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+             case ACACIA_BUTTON:
+             case ACACIA_DOOR:
+             case ACACIA_FENCE:
+@@ -4895,7 +5075,11 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case SANDSTONE_STAIRS:
+             case SANDSTONE_WALL:
+             case SCAFFOLDING:
++            case SCULK:
++            case SCULK_CATALYST:
+             case SCULK_SENSOR:
++            case SCULK_SHRIEKER:
++            case SCULK_VEIN:
+             case SEAGRASS:
+             case SEA_LANTERN:
+             case SEA_PICKLE:
+@@ -5077,6 +5261,9 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case YELLOW_WOOL:
+             case ZOMBIE_HEAD:
+             case ZOMBIE_WALL_HEAD:
++            case OCHRE_FROGLIGHT:
++            case PEARLESCENT_FROGLIGHT:
++            case VERDANT_FROGLIGHT:
+             //</editor-fold>
+                 return true;
+             default:
+@@ -5300,6 +5487,53 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+         }
+         switch (this) {
+             //<editor-fold defaultstate="collapsed" desc="isSolid">
++            case BAMBOO_BLOCK:
++            case BAMBOO_DOOR:
++            case BAMBOO_FENCE:
++            case BAMBOO_FENCE_GATE:
++            case BAMBOO_MOSAIC:
++            case BAMBOO_MOSAIC_SLAB:
++            case BAMBOO_MOSAIC_STAIRS:
++            case BAMBOO_PLANKS:
++            case BAMBOO_PRESSURE_PLATE:
++            case BAMBOO_SIGN:
++            case BAMBOO_SLAB:
++            case BAMBOO_STAIRS:
++            case BAMBOO_TRAPDOOR:
++            case BAMBOO_WALL_SIGN:
++            case CHERRY_DOOR:
++            case CHERRY_FENCE:
++            case CHERRY_FENCE_GATE:
++            case CHERRY_LEAVES:
++            case CHERRY_LOG:
++            case CHERRY_PLANKS:
++            case CHERRY_PRESSURE_PLATE:
++            case CHERRY_SIGN:
++            case CHERRY_SLAB:
++            case CHERRY_STAIRS:
++            case CHERRY_TRAPDOOR:
++            case CHERRY_WALL_SIGN:
++            case CHERRY_WOOD:
++            case STRIPPED_BAMBOO_BLOCK:
++            case STRIPPED_CHERRY_LOG:
++            case STRIPPED_CHERRY_WOOD:
++            case MANGROVE_DOOR:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_LEAVES:
++            case MANGROVE_LOG:
++            case MANGROVE_PLANKS:
++            case MANGROVE_PRESSURE_PLATE:
++            case MANGROVE_ROOTS:
++            case MANGROVE_SIGN:
++            case MANGROVE_SLAB:
++            case MANGROVE_STAIRS:
++            case MANGROVE_TRAPDOOR:
++            case MANGROVE_WALL_SIGN:
++            case MANGROVE_WOOD:
++            case MUDDY_MANGROVE_ROOTS:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+             case ACACIA_DOOR:
+             case ACACIA_FENCE:
+             case ACACIA_FENCE_GATE:
+@@ -5854,7 +6088,11 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case SANDSTONE_SLAB:
+             case SANDSTONE_STAIRS:
+             case SANDSTONE_WALL:
++            case SCULK:
++            case SCULK_CATALYST:
+             case SCULK_SENSOR:
++            case SCULK_SHRIEKER:
++            case SCULK_VEIN:
+             case SEA_LANTERN:
+             case SHROOMLIGHT:
+             case SHULKER_BOX:
+@@ -5989,6 +6227,9 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case YELLOW_TERRACOTTA:
+             case YELLOW_WALL_BANNER:
+             case YELLOW_WOOL:
++            case OCHRE_FROGLIGHT:
++            case PEARLESCENT_FROGLIGHT:
++            case VERDANT_FROGLIGHT:
+             // ----- Legacy Separator -----
+             case LEGACY_STONE:
+             case LEGACY_GRASS:
+@@ -6426,6 +6667,52 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+         }
+         switch (this) {
+             //<editor-fold defaultstate="collapsed" desc="isFlammable">
++            case BAMBOO_BLOCK:
++            case BAMBOO_DOOR:
++            case BAMBOO_FENCE:
++            case BAMBOO_FENCE_GATE:
++            case BAMBOO_MOSAIC:
++            case BAMBOO_MOSAIC_SLAB:
++            case BAMBOO_MOSAIC_STAIRS:
++            case BAMBOO_PLANKS:
++            case BAMBOO_PRESSURE_PLATE:
++            case BAMBOO_SIGN:
++            case BAMBOO_SLAB:
++            case BAMBOO_STAIRS:
++            case BAMBOO_TRAPDOOR:
++            case BAMBOO_WALL_SIGN:
++            case CHERRY_DOOR:
++            case CHERRY_FENCE:
++            case CHERRY_FENCE_GATE:
++            case CHERRY_LEAVES:
++            case CHERRY_LOG:
++            case CHERRY_PLANKS:
++            case CHERRY_PRESSURE_PLATE:
++            case CHERRY_SIGN:
++            case CHERRY_SLAB:
++            case CHERRY_STAIRS:
++            case CHERRY_TRAPDOOR:
++            case CHERRY_WALL_SIGN:
++            case CHERRY_WOOD:
++            case STRIPPED_BAMBOO_BLOCK:
++            case STRIPPED_CHERRY_LOG:
++            case STRIPPED_CHERRY_WOOD:
++            case MANGROVE_DOOR:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_LEAVES:
++            case MANGROVE_LOG:
++            case MANGROVE_PLANKS:
++            case MANGROVE_PRESSURE_PLATE:
++            case MANGROVE_ROOTS:
++            case MANGROVE_SIGN:
++            case MANGROVE_SLAB:
++            case MANGROVE_STAIRS:
++            case MANGROVE_TRAPDOOR:
++            case MANGROVE_WALL_SIGN:
++            case MANGROVE_WOOD:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+             case ACACIA_DOOR:
+             case ACACIA_FENCE:
+             case ACACIA_FENCE_GATE:
+@@ -6708,6 +6995,37 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+         }
+         switch (this) {
+             //<editor-fold defaultstate="collapsed" desc="isBurnable">
++            case BAMBOO_BLOCK:
++            case BAMBOO_FENCE:
++            case BAMBOO_FENCE_GATE:
++            case BAMBOO_MOSAIC:
++            case BAMBOO_MOSAIC_SLAB:
++            case BAMBOO_MOSAIC_STAIRS:
++            case BAMBOO_PLANKS:
++            case BAMBOO_SLAB:
++            case BAMBOO_STAIRS:
++            case CHERRY_FENCE:
++            case CHERRY_FENCE_GATE:
++            case CHERRY_LEAVES:
++            case CHERRY_LOG:
++            case CHERRY_PLANKS:
++            case CHERRY_SLAB:
++            case CHERRY_STAIRS:
++            case CHERRY_WOOD:
++            case STRIPPED_BAMBOO_BLOCK:
++            case STRIPPED_CHERRY_LOG:
++            case STRIPPED_CHERRY_WOOD:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_LEAVES:
++            case MANGROVE_LOG:
++            case MANGROVE_PLANKS:
++            case MANGROVE_ROOTS:
++            case MANGROVE_SLAB:
++            case MANGROVE_STAIRS:
++            case MANGROVE_WOOD:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+             case ACACIA_FENCE:
+             case ACACIA_FENCE_GATE:
+             case ACACIA_LEAVES:
+@@ -6901,6 +7219,50 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+     public boolean isFuel() {
+         switch (this) {
+             //<editor-fold defaultstate="collapsed" desc="isFuel">
++            case BAMBOO_BLOCK:
++            case BAMBOO_BUTTON:
++            case BAMBOO_DOOR:
++            case BAMBOO_FENCE:
++            case BAMBOO_FENCE_GATE:
++            case BAMBOO_MOSAIC:
++            case BAMBOO_MOSAIC_SLAB:
++            case BAMBOO_MOSAIC_STAIRS:
++            case BAMBOO_PLANKS:
++            case BAMBOO_PRESSURE_PLATE:
++            case BAMBOO_SIGN:
++            case BAMBOO_SLAB:
++            case BAMBOO_STAIRS:
++            case BAMBOO_TRAPDOOR:
++            case CHERRY_BUTTON:
++            case CHERRY_DOOR:
++            case CHERRY_FENCE:
++            case CHERRY_FENCE_GATE:
++            case CHERRY_LOG:
++            case CHERRY_PLANKS:
++            case CHERRY_PRESSURE_PLATE:
++            case CHERRY_SIGN:
++            case CHERRY_SLAB:
++            case CHERRY_STAIRS:
++            case CHERRY_TRAPDOOR:
++            case CHERRY_WOOD:
++            case STRIPPED_BAMBOO_BLOCK:
++            case STRIPPED_CHERRY_LOG:
++            case STRIPPED_CHERRY_WOOD:
++            case MANGROVE_BUTTON:
++            case MANGROVE_DOOR:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_LOG:
++            case MANGROVE_PLANKS:
++            case MANGROVE_PRESSURE_PLATE:
++            case MANGROVE_ROOTS:
++            case MANGROVE_SIGN:
++            case MANGROVE_SLAB:
++            case MANGROVE_STAIRS:
++            case MANGROVE_TRAPDOOR:
++            case MANGROVE_WOOD:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+             case ACACIA_BOAT:
+             case ACACIA_BUTTON:
+             case ACACIA_DOOR:
+@@ -7163,6 +7525,22 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+         }
+         switch (this) {
+             //<editor-fold defaultstate="collapsed" desc="isOccluding">
++            case BAMBOO_BLOCK:
++            case BAMBOO_MOSAIC:
++            case BAMBOO_PLANKS:
++            case CHERRY_LOG:
++            case CHERRY_PLANKS:
++            case CHERRY_WOOD:
++            case STRIPPED_BAMBOO_BLOCK:
++            case STRIPPED_CHERRY_LOG:
++            case STRIPPED_CHERRY_WOOD:
++            case MANGROVE_LOG:
++            case MANGROVE_PLANKS:
++            case MANGROVE_ROOTS:
++            case MANGROVE_WOOD:
++            case MUDDY_MANGROVE_ROOTS:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+             case ACACIA_LOG:
+             case ACACIA_PLANKS:
+             case ACACIA_WOOD:
+@@ -7491,6 +7869,11 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case YELLOW_SHULKER_BOX:
+             case YELLOW_TERRACOTTA:
+             case YELLOW_WOOL:
++            case OCHRE_FROGLIGHT:
++            case PEARLESCENT_FROGLIGHT:
++            case VERDANT_FROGLIGHT:
++            case SCULK:
++            case SCULK_CATALYST:
+             // ----- Legacy Separator -----
+             case LEGACY_STONE:
+             case LEGACY_GRASS:
+@@ -7649,6 +8032,9 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+     public boolean isItem() {
+         switch (this) {
+             //<editor-fold defaultstate="collapsed" desc="isItem">
++            case BAMBOO_WALL_SIGN:
++            case CHERRY_WALL_SIGN:
++            case MANGROVE_WALL_SIGN:
+             case ACACIA_WALL_SIGN:
+             case ATTACHED_MELON_STEM:
+             case ATTACHED_PUMPKIN_STEM:
+@@ -7855,6 +8241,31 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+     public boolean isInteractable() {
+         switch (this) {
+             // <editor-fold defaultstate="collapsed" desc="isInteractable">
++            case BAMBOO_BUTTON:
++            case BAMBOO_DOOR:
++            case BAMBOO_FENCE:
++            case BAMBOO_FENCE_GATE:
++            case BAMBOO_MOSAIC_STAIRS:
++            case BAMBOO_SIGN:
++            case BAMBOO_STAIRS:
++            case BAMBOO_TRAPDOOR:
++            case BAMBOO_WALL_SIGN:
++            case MANGROVE_BUTTON:
++            case MANGROVE_DOOR:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_SIGN:
++            case MANGROVE_STAIRS:
++            case MANGROVE_TRAPDOOR:
++            case MANGROVE_WALL_SIGN:
++            case CHERRY_BUTTON:
++            case CHERRY_DOOR:
++            case CHERRY_FENCE:
++            case CHERRY_FENCE_GATE:
++            case CHERRY_SIGN:
++            case CHERRY_STAIRS:
++            case CHERRY_TRAPDOOR:
++            case CHERRY_WALL_SIGN:
+             case ACACIA_BUTTON:
+             case ACACIA_DOOR:
+             case ACACIA_FENCE:
+@@ -8226,6 +8637,9 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case VINE:
+             case WHITE_BED:
+             case YELLOW_BED:
++            case SCULK:
++            case SCULK_VEIN:
++            case MANGROVE_LEAVES:
+                 return 0.2F;
+             case POWDER_SNOW:
+                 return 0.25F;
+@@ -8268,6 +8682,9 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WHITE_STAINED_GLASS_PANE:
+             case YELLOW_STAINED_GLASS:
+             case YELLOW_STAINED_GLASS_PANE:
++            case OCHRE_FROGLIGHT:
++            case PEARLESCENT_FROGLIGHT:
++            case VERDANT_FROGLIGHT:
+                 return 0.3F;
+             case CACTUS:
+             case CHORUS_FLOWER:
+@@ -8351,6 +8768,8 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WHITE_CONCRETE_POWDER:
+             case YELLOW_CANDLE_CAKE:
+             case YELLOW_CONCRETE_POWDER:
++            case MANGROVE_BUTTON:
++            case MANGROVE_PRESSURE_PLATE:
+                 return 0.5F;
+             case BEEHIVE:
+             case CLAY:
+@@ -8369,6 +8788,8 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case DETECTOR_RAIL:
+             case POWERED_RAIL:
+             case RAIL:
++            case MANGROVE_ROOTS:
++            case MUDDY_MANGROVE_ROOTS:
+                 return 0.7F;
+             case CALCITE:
+             case INFESTED_CHISELED_STONE_BRICKS:
+@@ -8480,6 +8901,8 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case YELLOW_WALL_BANNER:
+             case ZOMBIE_HEAD:
+             case ZOMBIE_WALL_HEAD:
++            case MANGROVE_SIGN:
++            case MANGROVE_WALL_SIGN:
+                 return 1.0F;
+             case BASALT:
+             case BLACK_TERRACOTTA:
+@@ -8763,6 +9186,15 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WATER_CAULDRON:
+             case WHITE_SHULKER_BOX:
+             case YELLOW_SHULKER_BOX:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_LOG:
++            case MANGROVE_PLANKS:
++            case MANGROVE_SLAB:
++            case MANGROVE_STAIRS:
++            case MANGROVE_WOOD:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+                 return 2.0F;
+             case BARREL:
+             case CARTOGRAPHY_TABLE:
+@@ -8848,6 +9280,10 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WEATHERED_CUT_COPPER:
+             case WEATHERED_CUT_COPPER_SLAB:
+             case WEATHERED_CUT_COPPER_STAIRS:
++            case SCULK_CATALYST:
++            case SCULK_SHRIEKER:
++            case MANGROVE_DOOR:
++            case MANGROVE_TRAPDOOR:
+                 return 3.0F;
+             case BLAST_FURNACE:
+             case CHISELED_DEEPSLATE:
+@@ -9010,6 +9446,9 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case VINE:
+             case WHITE_BED:
+             case YELLOW_BED:
++            case SCULK:
++            case SCULK_VEIN:
++            case MANGROVE_LEAVES:
+                 return 0.2F;
+             case POWDER_SNOW:
+                 return 0.25F;
+@@ -9052,6 +9491,9 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WHITE_STAINED_GLASS_PANE:
+             case YELLOW_STAINED_GLASS:
+             case YELLOW_STAINED_GLASS_PANE:
++            case OCHRE_FROGLIGHT:
++            case PEARLESCENT_FROGLIGHT:
++            case VERDANT_FROGLIGHT:
+                 return 0.3F;
+             case CACTUS:
+             case CHORUS_FLOWER:
+@@ -9134,6 +9576,8 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WHITE_CONCRETE_POWDER:
+             case YELLOW_CANDLE_CAKE:
+             case YELLOW_CONCRETE_POWDER:
++            case MANGROVE_BUTTON:
++            case MANGROVE_PRESSURE_PLATE:
+                 return 0.5F;
+             case BEEHIVE:
+             case CLAY:
+@@ -9152,6 +9596,8 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case DETECTOR_RAIL:
+             case POWERED_RAIL:
+             case RAIL:
++            case MANGROVE_ROOTS:
++            case MUDDY_MANGROVE_ROOTS:
+                 return 0.7F;
+             case CALCITE:
+             case INFESTED_CHISELED_STONE_BRICKS:
+@@ -9265,6 +9711,8 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case YELLOW_WALL_BANNER:
+             case ZOMBIE_HEAD:
+             case ZOMBIE_WALL_HEAD:
++            case MANGROVE_SIGN:
++            case MANGROVE_WALL_SIGN:
+                 return 1.0F;
+             case BLACK_GLAZED_TERRACOTTA:
+             case BLUE_GLAZED_TERRACOTTA:
+@@ -9368,6 +9816,10 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WATER_CAULDRON:
+             case WHITE_SHULKER_BOX:
+             case YELLOW_SHULKER_BOX:
++            case MANGROVE_LOG:
++            case MANGROVE_WOOD:
++            case STRIPPED_MANGROVE_LOG:
++            case STRIPPED_MANGROVE_WOOD:
+                 return 2.0F;
+             case BARREL:
+             case CARTOGRAPHY_TABLE:
+@@ -9462,6 +9914,15 @@ public enum Material implements Keyed, net.kyori.adventure.translation.Translata
+             case WARPED_SLAB:
+             case WARPED_STAIRS:
+             case WARPED_TRAPDOOR:
++            case SCULK_CATALYST:
++            case SCULK_SHRIEKER:
++            case MANGROVE_DOOR:
++            case MANGROVE_FENCE:
++            case MANGROVE_FENCE_GATE:
++            case MANGROVE_PLANKS:
++            case MANGROVE_SLAB:
++            case MANGROVE_STAIRS:
++            case MANGROVE_TRAPDOOR:
+                 return 3.0F;
+             case BLAST_FURNACE:
+             case DISPENSER:
+diff --git a/src/main/java/org/bukkit/Server.java b/src/main/java/org/bukkit/Server.java
+index 2c4dfcf909c0214d25232a14635b96f92d4d974a..f75f824e254463a2c6137feeea063524a3524b54 100644
+--- a/src/main/java/org/bukkit/Server.java
++++ b/src/main/java/org/bukkit/Server.java
+@@ -1469,7 +1469,6 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
+      * return true, and then modifying the chunkdata in a later stage such as surface or bedrock generation.
+      */
+     @NotNull
+-    @Deprecated(forRemoval = true)
+     ChunkGenerator.ChunkData createVanillaChunkData(@NotNull World world, int x, int z);
+     // Paper end
+ 
+diff --git a/src/main/java/org/bukkit/Tag.java b/src/main/java/org/bukkit/Tag.java
+index ddd195a834d1756c903644fc1faffe7ebcb238ed..6a7bfe13949c700239486fa8a9d98e2ed8bb3d6b 100644
+--- a/src/main/java/org/bukkit/Tag.java
++++ b/src/main/java/org/bukkit/Tag.java
+@@ -122,6 +122,10 @@ public interface Tag<T extends Keyed> extends Keyed {
+      * Vanilla block tag representing all spruce log and bark variants.
+      */
+     Tag<Material> SPRUCE_LOGS = Bukkit.getTag(REGISTRY_BLOCKS, NamespacedKey.minecraft("spruce_logs"), Material.class);
++    /**
++     * Vanilla block tag representing all mangrove log and bark variants.
++     */
++    Tag<Material> MANGROVE_LOGS = Bukkit.getTag(REGISTRY_BLOCKS, NamespacedKey.minecraft("mangrove_logs"), Material.class);
+     /**
+      * Vanilla block tag representing all crimson stems.
+      */
+@@ -207,6 +211,16 @@ public interface Tag<T extends Keyed> extends Keyed {
+      * Vanilla block tag representing all diamond ores.
+      */
+     Tag<Material> DIAMOND_ORES = Bukkit.getTag(REGISTRY_BLOCKS, NamespacedKey.minecraft("diamond_ores"), Material.class);
++    /**
++     * Vanilla block tag representing all blocks which mangrove logs can grow
++     * through.
++     */
++    Tag<Material> MANGROVE_LOGS_CAN_GROW_THROUGH = Bukkit.getTag(REGISTRY_BLOCKS, NamespacedKey.minecraft("mangrove_logs_can_grow_through"), Material.class);
++    /**
++     * Vanilla block tag representing all blocks which mangrove roots can grow
++     * through.
++     */
++    Tag<Material> MANGROVE_ROOTS_CAN_GROW_THROUGH = Bukkit.getTag(REGISTRY_BLOCKS, NamespacedKey.minecraft("mangrove_roots_can_grow_through"), Material.class);
+     /**
+      * Vanilla block tag representing all redstone ores.
+      */
+diff --git a/src/main/java/org/bukkit/TreeType.java b/src/main/java/org/bukkit/TreeType.java
+index fec99b03bb956fd239e8ad10fcad3bc8acfe08cf..6ecb9ee87a29491e8a82907ae53ce13bbbd5caaa 100644
+--- a/src/main/java/org/bukkit/TreeType.java
++++ b/src/main/java/org/bukkit/TreeType.java
+@@ -81,6 +81,14 @@ public enum TreeType {
+      * Large warped fungus native to the nether
+      */
+     WARPED_FUNGUS,
++    /**
++     * Mangrove tree
++     */
++    MANGROVE,
++    /**
++     * Tall mangrove tree
++     */
++    TALL_MANGROVE,
+     /**
+      * Tree with large roots which grows above lush caves
+      */
+diff --git a/src/main/java/org/bukkit/block/SculkCatalyst.java b/src/main/java/org/bukkit/block/SculkCatalyst.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ed94fbc0dd590e354b072d0c97fb60d0d5b5fa5c
+--- /dev/null
++++ b/src/main/java/org/bukkit/block/SculkCatalyst.java
+@@ -0,0 +1,7 @@
++package org.bukkit.block;
++
++/**
++ * Represents a captured state of a sculk catalyst.
++ */
++public interface SculkCatalyst extends TileState {
++}
+diff --git a/src/main/java/org/bukkit/block/SculkShrieker.java b/src/main/java/org/bukkit/block/SculkShrieker.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..044823a32b083ca2adcdf7e5b5c4ff92e2f64e40
+--- /dev/null
++++ b/src/main/java/org/bukkit/block/SculkShrieker.java
+@@ -0,0 +1,27 @@
++package org.bukkit.block;
++
++/**
++ * Represents a captured state of a sculk shrieker.
++ */
++public interface SculkShrieker extends TileState {
++
++    /**
++     * Gets the most recent warning level of this block.
++     *
++     * When the warning level reaches 4, the shrieker will attempt to spawn a
++     * Warden.
++     *
++     * @return current warning level
++     */
++    int getWarningLevel();
++
++    /**
++     * Sets the most recent warning level of this block.
++     *
++     * When the warning level reaches 4, the shrieker will attempt to spawn a
++     * Warden.
++     *
++     * @param level new warning level
++     */
++    void setWarningLevel(int level);
++}
+diff --git a/src/main/java/org/bukkit/block/data/type/SculkCatalyst.java b/src/main/java/org/bukkit/block/data/type/SculkCatalyst.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..72adcba38d1307ec771272af159ebecb3f58d806
+--- /dev/null
++++ b/src/main/java/org/bukkit/block/data/type/SculkCatalyst.java
+@@ -0,0 +1,24 @@
++package org.bukkit.block.data.type;
++
++import org.bukkit.block.data.BlockData;
++
++/**
++ * 'bloom' indicates whether the sculk catalyst is actively spreading the sculk
++ * or not.
++ */
++public interface SculkCatalyst extends BlockData {
++
++    /**
++     * Gets the value of the 'bloom' property.
++     *
++     * @return the 'bloom' value
++     */
++    boolean isBloom();
++
++    /**
++     * Sets the value of the 'bloom' property.
++     *
++     * @param bloom the new 'bloom' value
++     */
++    void setBloom(boolean bloom);
++}
+diff --git a/src/main/java/org/bukkit/block/data/type/SculkShrieker.java b/src/main/java/org/bukkit/block/data/type/SculkShrieker.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..746fb4c577a94e1d242d3c5720187677015283fc
+--- /dev/null
++++ b/src/main/java/org/bukkit/block/data/type/SculkShrieker.java
+@@ -0,0 +1,39 @@
++package org.bukkit.block.data.type;
++
++import org.bukkit.block.data.Waterlogged;
++
++/**
++ * 'can_summon' indicates whether the sculk shrieker can summon the warden.
++ * <p>
++ * 'shrieking' indicated whether the sculk shrieker is shrieking or not.
++ */
++public interface SculkShrieker extends Waterlogged {
++
++    /**
++     * Gets the value of the 'can_summon' property.
++     *
++     * @return the 'can_summon' value
++     */
++    boolean isCanSummon();
++
++    /**
++     * Sets the value of the 'can_summon' property.
++     *
++     * @param can_summon the new 'can_summon' value
++     */
++    void setCanSummon(boolean can_summon);
++
++    /**
++     * Gets the value of the 'shrieking' property.
++     *
++     * @return the 'shrieking' value
++     */
++    boolean isShrieking();
++
++    /**
++     * Sets the value of the 'shrieking' property.
++     *
++     * @param shrieking the new 'shrieking' value
++     */
++    void setShrieking(boolean shrieking);
++}
+diff --git a/src/main/java/org/bukkit/block/data/type/SculkVein.java b/src/main/java/org/bukkit/block/data/type/SculkVein.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..29b45c81a209f1ed6337ea2f5673c9de925e184f
+--- /dev/null
++++ b/src/main/java/org/bukkit/block/data/type/SculkVein.java
+@@ -0,0 +1,7 @@
++package org.bukkit.block.data.type;
++
++import org.bukkit.block.data.MultipleFacing;
++import org.bukkit.block.data.Waterlogged;
++
++public interface SculkVein extends MultipleFacing, Waterlogged {
++}
+diff --git a/src/main/java/org/bukkit/command/MessageCommandSender.java b/src/main/java/org/bukkit/command/MessageCommandSender.java
+index 68daa56546d00089d7d6c13ee897d828c377bbc3..f24f79c70af41bfb322a9d9f49c51703fdfcdd8e 100644
+--- a/src/main/java/org/bukkit/command/MessageCommandSender.java
++++ b/src/main/java/org/bukkit/command/MessageCommandSender.java
+@@ -66,6 +66,11 @@ public interface MessageCommandSender extends CommandSender {
+         throw new NotImplementedException();
+     }
+ 
++    @Override
++    default int getOpLevel() {
++        throw new NotImplementedException();
++    }
++
+     @Override
+     default boolean isPermissionSet(@NotNull String name) {
+         throw new NotImplementedException();
+diff --git a/src/main/java/org/bukkit/enchantments/Enchantment.java b/src/main/java/org/bukkit/enchantments/Enchantment.java
+index 1e1c5a9d9a769018c4604e6e44fc5ed2312981e9..410a191b0c129d6bb45597115e389e1cb42879d3 100644
+--- a/src/main/java/org/bukkit/enchantments/Enchantment.java
++++ b/src/main/java/org/bukkit/enchantments/Enchantment.java
+@@ -204,6 +204,8 @@ public abstract class Enchantment implements Keyed, net.kyori.adventure.translat
+      * Walk quicker on soul blocks
+      */
+     public static final Enchantment SOUL_SPEED = new EnchantmentWrapper("soul_speed");
++    
++    public static final Enchantment SWIFT_SNEAK = new EnchantmentWrapper("swift_sneak");
+ 
+     private static final Map<NamespacedKey, Enchantment> byKey = new HashMap<NamespacedKey, Enchantment>();
+     private static final Map<String, Enchantment> byName = new HashMap<String, Enchantment>();
+diff --git a/src/main/java/org/bukkit/entity/Allay.java b/src/main/java/org/bukkit/entity/Allay.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..e5e79202b97172efae31031c9c86808b9a268ce5
+--- /dev/null
++++ b/src/main/java/org/bukkit/entity/Allay.java
+@@ -0,0 +1,106 @@
++package org.bukkit.entity;
++
++import org.bukkit.Location;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.inventory.InventoryHolder;
++import org.jetbrains.annotations.NotNull;
++import org.jetbrains.annotations.Nullable;
++
++/**
++ * An Allay.
++ */
++public interface Allay extends Creature, InventoryHolder {
++
++    /**
++     * Gets if the allay can duplicate.
++     * <br>
++     * <b>Note:</b> Duplication is based when the
++     * {@link #getDuplicationCooldown} its lower than zero.
++     *
++     * @return if the allay can duplicate itself.
++     */
++    public boolean canDuplicate();
++
++    /**
++     * Sets if the allay can duplicate.
++     * <br>
++     * <b>Note:</b> this value can be overridden later by
++     * {@link #getDuplicationCooldown} if is lower than zero. You can also use
++     * {@link #setDuplicationCooldown} to allow the allay to duplicate
++     *
++     * @param canDuplicate if the allay can duplicate itself
++     */
++    public void setCanDuplicate(boolean canDuplicate);
++
++    /**
++     * Gets the cooldown for duplicating the allay.
++     *
++     * @return the time in ticks when allay can duplicate
++     */
++    public long getDuplicationCooldown();
++
++    /**
++     * Sets the cooldown before the allay can duplicate again.
++     *
++     * @param cooldown the cooldown, use a negative number to deny allay to
++     * duplicate again.
++     */
++    public void setDuplicationCooldown(long cooldown);
++
++    /**
++     * Reset the cooldown for duplication.
++     *
++     * This will set the cooldown ticks to the same value as is set after an
++     * Allay has duplicated.
++     */
++    public void resetDuplicationCooldown();
++
++    /**
++     * Gets if the allay is dancing.
++     *
++     * @return {@code True} if it is dancing, false otherwise.
++     */
++    public boolean isDancing();
++
++    /**
++     * Causes the allay to start dancing because of the provided jukebox
++     * location.
++     *
++     * @param location the location of the jukebox
++     *
++     * @throws IllegalArgumentException if the block at the location is not a
++     * jukebox
++     */
++    public void startDancing(@NotNull Location location);
++
++    /**
++     * Force sets the dancing status of the allay.
++     * <br>
++     * <b>Note:</b> This method forces the allay to dance, ignoring any nearby
++     * jukebox being required.
++     */
++    public void startDancing();
++
++    /**
++     * Makes the allay stop dancing.
++     */
++    public void stopDancing();
++
++    /**
++     * This make the current allay duplicate itself without dance or item
++     * necessary.
++     * <b>Note:</b> this will fire a {@link CreatureSpawnEvent}
++     *
++     * @return the new entity {@link Allay} or null if the spawn was cancelled
++     */
++    @Nullable
++    public Allay duplicateAllay();
++
++    /**
++     * Gets the jukebox the allay is set to dance to.
++     *
++     * @return the location of the jukebox to dance if it exists
++     */
++    @Nullable
++    public Location getJukebox();
++}
+diff --git a/src/main/java/org/bukkit/entity/EntityType.java b/src/main/java/org/bukkit/entity/EntityType.java
+index cf5e2f8cfe425172f5c194689e2d923b109c6929..ccf6f3825ee19971ce808254fa46347565dfcb93 100644
+--- a/src/main/java/org/bukkit/entity/EntityType.java
++++ b/src/main/java/org/bukkit/entity/EntityType.java
+@@ -274,6 +274,12 @@ public enum EntityType implements Keyed, net.kyori.adventure.translation.Transla
+     GLOW_SQUID("glow_squid", GlowSquid.class, -1),
+     GOAT("goat", Goat.class, -1),
+     MARKER("marker", Marker.class, -1),
++    WARDEN("warden", Warden.class, -1),
++    ALLAY("allay", Allay.class, -1),
++    SNIFFER("sniffer", Sniffer.class, -1),
++    PIG_ZOMBIE("zombie_pigman", PigZombie.class, 57),
++    // FROG("frog", Frog.class, -1),
++    // TADPOLE("tadpole", Tadpole.class, -1),
+     /**
+      * A fishing line and bobber.
+      */
+@@ -322,7 +328,7 @@ public enum EntityType implements Keyed, net.kyori.adventure.translation.Transla
+         NAME_MAP.put("snowman", SNOWMAN);
+         NAME_MAP.put("villager_golem", IRON_GOLEM);
+         NAME_MAP.put("ender_crystal", ENDER_CRYSTAL);
+-        NAME_MAP.put("zombie_pigman", ZOMBIFIED_PIGLIN);
++        // NAME_MAP.put("zombie_pigman", ZOMBIFIED_PIGLIN);
+     }
+ 
+     private EntityType(/*@Nullable*/ String name, /*@Nullable*/ Class<? extends Entity> clazz, int typeId) {
+diff --git a/src/main/java/org/bukkit/entity/PigZombie2.java b/src/main/java/org/bukkit/entity/PigZombie2.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..1977848de04812cb52f9069300b486ff05257e7a
+--- /dev/null
++++ b/src/main/java/org/bukkit/entity/PigZombie2.java
+@@ -0,0 +1,60 @@
++package org.bukkit.entity;
++
++/**
++ * Represents a Pig Zombie.
++ */
++public interface PigZombie2 extends Zombie {
++
++    /**
++     * Get the pig zombie's current anger level.
++     *
++     * @return The anger level.
++     */
++    int getAnger();
++
++    /**
++     * Set the pig zombie's current anger level.
++     *
++     * @param level The anger level. Higher levels of anger take longer to
++     *     wear off.
++     */
++    void setAnger(int level);
++
++    /**
++     * Shorthand; sets to either 0 or the default level.
++     *
++     * @param angry Whether the zombie should be angry.
++     */
++    void setAngry(boolean angry);
++
++    /**
++     * Shorthand; gets whether the zombie is angry.
++     *
++     * @return True if the zombie is angry, otherwise false.
++     */
++    boolean isAngry();
++
++    /**
++     * <b>Not applicable to this entity</b>
++     *
++     * @return false
++     */
++    @Override
++    public boolean isConverting();
++
++    /**
++     * <b>Not applicable to this entity</b>
++     *
++     * @return UnsuppotedOperationException
++     */
++    @Override
++    public int getConversionTime();
++
++    /**
++     * <b>Not applicable to this entity</b>
++     *
++     * @param time unused
++     */
++    @Override
++    public void setConversionTime(int time);
++}
+diff --git a/src/main/java/org/bukkit/entity/Sniffer.java b/src/main/java/org/bukkit/entity/Sniffer.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3104096c6340a56bcc86677eb120acf48115ab9d
+--- /dev/null
++++ b/src/main/java/org/bukkit/entity/Sniffer.java
+@@ -0,0 +1,6 @@
++package org.bukkit.entity;
++
++/**
++ * Represents a Sniffer.
++ */
++public interface Sniffer extends Animals {}
+diff --git a/src/main/java/org/bukkit/entity/Warden.java b/src/main/java/org/bukkit/entity/Warden.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..25bbecc89b01faa4905def014d07a616e39df992
+--- /dev/null
++++ b/src/main/java/org/bukkit/entity/Warden.java
+@@ -0,0 +1,38 @@
++package org.bukkit.entity;
++
++import org.jetbrains.annotations.NotNull;
++
++/**
++ * A Warden.
++ */
++public interface Warden extends Monster {
++
++    /**
++     * Gets the anger level of this warden.
++     *
++     * Anger is an integer from 0 to 150. Once a Warden reaches 80 anger at a
++     * target it will actively pursue it.
++     *
++     * @param entity target
++     * @return anger level
++     */
++    int getAnger(@NotNull Entity entity);
++
++    /**
++     * Increases the anger level of this warden.
++     *
++     * @param entity target
++     * @param increase number to increase by
++     * @see #getAnger(org.bukkit.entity.Entity)
++     */
++    void increaseAnger(@NotNull Entity entity, int increase);
++
++    /**
++     * Sets the anger level of this warden.
++     *
++     * @param entity target
++     * @param anger new anger level
++     * @see #getAnger(org.bukkit.entity.Entity)
++     */
++    void setAnger(@NotNull Entity entity, int anger);
++}
+diff --git a/src/main/java/org/bukkit/permissions/PermissibleBase.java b/src/main/java/org/bukkit/permissions/PermissibleBase.java
+index 45797a6fbae1d8edc4211cb30def24ad4f59bd49..d6a6a2d22fddf188de31449e8bca3a5fc86b467b 100644
+--- a/src/main/java/org/bukkit/permissions/PermissibleBase.java
++++ b/src/main/java/org/bukkit/permissions/PermissibleBase.java
+@@ -46,6 +46,15 @@ public class PermissibleBase implements Permissible {
+         }
+     }
+ 
++    @Override
++    public int getOpLevel() {
++        if (opable == null) {
++            return 0;
++        } else {
++            return opable.getOpLevel();
++        }
++    }
++
+     @Override
+     public boolean isPermissionSet(@NotNull String name) {
+         if (name == null) {
+diff --git a/src/main/java/org/bukkit/permissions/ServerOperator.java b/src/main/java/org/bukkit/permissions/ServerOperator.java
+index 26ed24307b0c84e8946cf9f276012ea6d5219b9d..23c59c6186d8dd8ebee8ec3d7cbe715ea4113553 100644
+--- a/src/main/java/org/bukkit/permissions/ServerOperator.java
++++ b/src/main/java/org/bukkit/permissions/ServerOperator.java
+@@ -21,4 +21,6 @@ public interface ServerOperator {
+      * @param value New operator value
+      */
+     public void setOp(boolean value);
++    
++    public int getOpLevel();
+ }
+diff --git a/src/main/java/org/bukkit/potion/PotionEffectType.java b/src/main/java/org/bukkit/potion/PotionEffectType.java
+index 22c28a503732671bc84c51372262e909d035c1fa..82e6b872941462c191cb927d55a1f7cf626d252f 100644
+--- a/src/main/java/org/bukkit/potion/PotionEffectType.java
++++ b/src/main/java/org/bukkit/potion/PotionEffectType.java
+@@ -179,6 +179,8 @@ public abstract class PotionEffectType implements Keyed {
+      * \o/.
+      */
+     public static final PotionEffectType HERO_OF_THE_VILLAGE = new PotionEffectTypeWrapper(32, "hero_of_the_village");
++    
++    public static final PotionEffectType DARKNESS = new PotionEffectTypeWrapper(33, "darkness");
+ 
+     private final int id;
+     private final NamespacedKey key;
+@@ -276,7 +278,7 @@ public abstract class PotionEffectType implements Keyed {
+         return "PotionEffectType[" + id + ", " + getName() + "]";
+     }
+ 
+-    private static final PotionEffectType[] byId = new PotionEffectType[33];
++    private static final PotionEffectType[] byId = new PotionEffectType[34];
+     private static final Map<String, PotionEffectType> byName = new HashMap<String, PotionEffectType>();
+     private static final Map<NamespacedKey, PotionEffectType> byKey = new HashMap<NamespacedKey, PotionEffectType>();
+     // will break on updates.

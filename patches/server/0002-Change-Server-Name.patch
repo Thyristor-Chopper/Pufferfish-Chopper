@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?=EC=8B=B8=EC=9D=B4=EB=A6=AC=EC=8A=A4=ED=84=B0=20=EC=B4=88?=
+ =?UTF-8?q?=ED=8D=BC?= <gec_thyristor_chopper@[127.0.0.1]>
+Date: Thu, 26 Feb 2026 03:13:33 +0900
+Subject: [PATCH] Change Server Name
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index e29b9cd74fddaea8c4ddccb6b7e45df0d5538b69..ffdf2a647f62081bc90b64356cf390dcc77a71ea 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1739,7 +1739,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+     public String getServerModName() {
+         // Pufferfish Start
+         String purpurName = org.purpurmc.purpur.PurpurConfig.serverModName;
+-        return purpurName.equals("Purpur") ? "Pufferfish" : purpurName; // Pufferfish - Pufferfish // Purpur - Purpur > // Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
++        return purpurName.equals("Purpur") ? "Chopper" : purpurName; // Chopper - Chopper // Pufferfish - Pufferfish // Purpur - Purpur > // Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
+         // Pufferfish end
+     }
+ 
